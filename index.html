@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#176b58">
+  <meta name="description" content="Build a little momentum, every day. Sign in to Daywell, your simple habit tracker.">
+  <title>Welcome back · Daywell</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/auth.js" defer></script>
+</head>
+<body class="auth-page" data-page="login">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="auth-header">
+    <a class="brand" href="index.html" aria-label="Daywell home">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 17V11M12 17V6M18 17V9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span>
+      daywell<span class="brand-dot">.</span>
+    </a>
+    <span class="header-note">Small steps. Lasting change.</span>
+  </header>
+
+  <main class="auth-main" id="main-content">
+    <section class="auth-layout" aria-labelledby="page-title">
+      <div class="auth-story">
+        <p class="eyebrow"><span class="little-spark" aria-hidden="true">✦</span> A LITTLE, EVERY DAY</p>
+        <h1 id="page-title">Good habits.<br>Better <span class="serif-accent">days.</span></h1>
+        <p class="auth-description">You don’t have to change everything.<br>Just show up for the little things that matter.</p>
+        <div class="journey-art" aria-hidden="true">
+          <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
+          <div class="sample-habit">
+            <div class="sample-habit-top"><span class="sample-icon">↗</span><span>A little better, every day<small>Your progress adds up.</small></span><span class="sample-check">✓</span></div>
+            <div class="decorative-grid">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <div class="sample-caption"><span>One day at a time</span><span>Every square counts.</span></div>
+          </div>
+          <span class="art-tag"><span aria-hidden="true">✦</span> Progress, not perfection.</span>
+        </div>
+      </div>
+
+      <div class="auth-card">
+        <span class="section-kicker">YOUR DAILY RESET</span>
+        <h2>Welcome back.</h2>
+        <p class="muted">Your next small win is waiting for you.</p>
+        <div id="auth-notice" class="notice notice-success" role="status" hidden></div>
+        <div id="auth-error" class="notice notice-error" role="alert" hidden></div>
+        <form id="login-form" class="auth-form">
+          <div class="form-field">
+            <label for="email">Email address</label>
+            <input id="email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required maxlength="254">
+          </div>
+          <div class="form-field">
+            <label for="password">Password</label>
+            <div class="password-field">
+              <input id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required>
+              <button class="password-toggle" type="button" data-toggle-password="password" aria-label="Show password" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            </div>
+          </div>
+          <button class="button button-primary button-full" type="submit"><span data-button-label>Sign in</span><svg class="button-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg><span class="spinner" hidden aria-hidden="true"></span></button>
+        </form>
+        <p class="auth-switch">New around here? <a href="signup.html">Create an account <span aria-hidden="true">↗</span></a></p>
+        <div class="auth-card-footer"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg> A little space, just for you.</div>
+      </div>
+    </section>
+  </main>
+  <footer class="auth-footer"><span>Made for a more intentional everyday.</span><span>One day at a time. <span class="footer-spark" aria-hidden="true">✦</span></span></footer>
+  <noscript><p class="noscript-message">Please enable JavaScript to sign in and track your habits.</p></noscript>
+</body>
+</html>

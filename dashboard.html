@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#176b58">
+  <meta name="description" content="Your daily space to build better habits, track your streaks, and celebrate small wins.">
+  <title>Your everyday · Daywell</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/auth.js" defer></script>
+  <script src="js/heatmap.js" defer></script>
+  <script src="js/dashboard.js" defer></script>
+</head>
+<body data-page="dashboard">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="app-header">
+    <div class="header-inner">
+      <a class="brand" href="dashboard.html" aria-label="Daywell dashboard"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 17V11M12 17V6M18 17V9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span>daywell<span class="brand-dot">.</span></a>
+      <nav class="header-nav" aria-label="Main navigation"><a class="nav-link is-active" href="dashboard.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>My habits</a></nav>
+      <button id="logout-button" class="button button-ghost button-small" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4m6-12 4 4-4 4m-7-4h13"/></svg><span data-button-label>Log out</span><span class="spinner" hidden aria-hidden="true"></span></button>
+    </div>
+  </header>
+
+  <main class="dashboard-main" id="main-content">
+    <section class="dashboard-intro" aria-labelledby="page-title">
+      <div><p class="eyebrow"><span class="little-spark" aria-hidden="true">✦</span> MAKE TODAY A LITTLE BETTER</p><h1 id="page-title">Your everyday, <span class="serif-accent">intentional.</span></h1><p class="muted intro-description">Small habits. Steady progress. A little more you.</p></div>
+      <div class="today-chip"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18m-13 4h2m4 0h2"/></svg><div><span>TODAY</span><time id="today-date"></time></div></div>
+    </section>
+
+    <section class="overview-grid" aria-label="Your progress at a glance">
+      <div class="stat-card"><span class="stat-icon teal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8"/></svg></span><div class="stat-content"><span class="stat-label">Today’s progress</span><div class="stat-value" id="today-progress">—</div><span class="stat-description" id="today-caption">A new day, a little possibility</span></div><div class="progress-ring" id="progress-ring" role="progressbar" aria-label="Habits completed today" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progress-percent">—</span></div></div>
+      <div class="stat-card"><span class="stat-icon amber-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M13 3c1 5-5 5-3 10 1-2 3-2 4-4 3 3 5 5 5 8a7 7 0 0 1-14 0C5 11 10 9 13 3Z"/></svg></span><div class="stat-content"><span class="stat-label">Best active streak</span><div class="stat-value" id="best-streak">—</div><span class="stat-description">Keep your momentum going</span></div></div>
+      <div class="stat-card"><span class="stat-icon purple-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 20V10m7 10V4m7 16v-7M3 20h18"/></svg></span><div class="stat-content"><span class="stat-label">Habits you’re building</span><div class="stat-value" id="habit-total">—</div><span class="stat-description">Little commitments to yourself</span></div></div>
+    </section>
+
+    <section class="habits-section" aria-labelledby="habits-title">
+      <div class="section-toolbar"><div class="section-title-row"><h2 id="habits-title">Your habits</h2><span id="habit-count" class="count-badge">—</span></div><button id="add-habit-button" class="button button-primary" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add habit</button></div>
+      <div class="habits-subheading"><p>A little consistency goes a long way.</p><span><span class="status-dot" aria-hidden="true"></span> One check-in at a time</span></div>
+      <div id="dashboard-error" class="notice notice-error dashboard-notice" role="alert" hidden><span id="dashboard-error-text"></span><button id="retry-load" class="text-button" type="button">Try again</button></div>
+
+      <div id="habits-loading" class="habit-grid" role="status" aria-label="Loading your habits">
+        <span class="sr-only">Loading your habits…</span>
+        <div class="habit-card skeleton-card" aria-hidden="true"><div class="skeleton skeleton-heading"></div><div class="skeleton skeleton-caption"></div><div class="skeleton-stats"><div class="skeleton"></div><div class="skeleton"></div></div><div class="skeleton skeleton-calendar"></div><div class="skeleton skeleton-button"></div></div>
+        <div class="habit-card skeleton-card" aria-hidden="true"><div class="skeleton skeleton-heading"></div><div class="skeleton skeleton-caption"></div><div class="skeleton-stats"><div class="skeleton"></div><div class="skeleton"></div></div><div class="skeleton skeleton-calendar"></div><div class="skeleton skeleton-button"></div></div>
+      </div>
+      <div id="habits-grid" class="habit-grid" hidden></div>
+      <div id="empty-state" class="empty-state" hidden><div class="empty-illustration" aria-hidden="true"><span class="empty-orbit"></span><svg viewBox="0 0 48 48" fill="none"><path d="M24 37V20m0 8C12 28 9 19 10 12c10 0 14 5 14 12m0-3c0-9 6-13 15-13 0 9-4 15-15 15"/></svg><span class="empty-spark">✦</span></div><span class="section-kicker">GREAT THINGS START SMALL</span><h3>Make space for your first habit.</h3><p>A morning stretch. A few pages. A glass of water.<br>Pick one little thing you’d like to show up for.</p><button id="empty-add-button" class="button button-primary" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add your first habit</button></div>
+    </section>
+
+    <aside class="encouragement"><span class="encouragement-icon" aria-hidden="true">✦</span><div><h2>Consistency isn’t about being perfect.</h2><p>It’s about coming back. Missed a day? Today is a fresh start.</p></div><span class="encouragement-note">Keep showing up.</span></aside>
+    <footer class="dashboard-footer"><span>Small steps today. A better everyday.</span><span class="footer-brand">daywell<span class="brand-dot">.</span></span></footer>
+  </main>
+
+  <!-- Native dialogs provide focus trapping, Escape support, and accessible modality. -->
+  <dialog id="habit-dialog" class="modal" aria-labelledby="habit-dialog-title" aria-describedby="habit-dialog-description">
+    <div class="modal-header"><span class="modal-symbol" aria-hidden="true">✦</span><button class="icon-button" id="close-habit-dialog" type="button" aria-label="Close add habit dialog"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
+    <span class="section-kicker">PLANT A LITTLE POSSIBILITY</span><h2 id="habit-dialog-title">One small, good thing.</h2><p id="habit-dialog-description" class="muted">What would you like to make time for each day?</p>
+    <div id="habit-form-error" class="notice notice-error" role="alert" hidden></div>
+    <form id="habit-form">
+      <div class="form-field"><label for="habit-name">Habit name</label><input id="habit-name" name="name" type="text" placeholder="e.g. Read for 20 minutes" required maxlength="100" autofocus></div>
+      <div class="form-field"><label for="habit-category">Category <span class="optional">(optional)</span></label><input id="habit-category" name="category" type="text" placeholder="e.g. Mindfulness, Movement, Learning" maxlength="40" list="category-suggestions"><datalist id="category-suggestions"><option value="Mindfulness"></option><option value="Movement"></option><option value="Learning"></option><option value="Wellness"></option><option value="Creativity"></option></datalist></div>
+      <div class="modal-actions"><button id="cancel-habit-dialog" class="button button-secondary" type="button">Not now</button><button class="button button-primary" type="submit"><span data-button-label>Add habit</span><span class="spinner" hidden aria-hidden="true"></span></button></div>
+    </form>
+  </dialog>
+
+  <dialog id="delete-dialog" class="modal modal-small" aria-labelledby="delete-dialog-title" aria-describedby="delete-description">
+    <span class="section-kicker">MAKING ROOM</span><h2 id="delete-dialog-title">Let this habit go?</h2><p class="muted" id="delete-description"></p><div id="delete-error" class="notice notice-error" role="alert" hidden></div><div class="modal-actions"><button id="cancel-delete" class="button button-secondary" type="button" autofocus>Keep habit</button><button id="confirm-delete" class="button button-danger" type="button"><span data-button-label>Delete habit</span><span class="spinner" hidden aria-hidden="true"></span></button></div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <noscript><p class="noscript-message">Please enable JavaScript to load your habits and record check-ins.</p></noscript>
+</body>
+</html>
