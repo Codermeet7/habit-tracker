@@ -32,13 +32,32 @@ function keyToDate(key) {
   return new Date(y, m - 1, d, 12);
 }
 
+/* Accept a Date, a "YYYY-MM-DD" string or a full ISO timestamp and return
+   the "YYYY-MM-DD" key — or null when the value can't be understood.
+   The API sends check-ins as ISO strings ("2026-09-11"), so every helper
+   below funnels its input through here before touching the value. */
+function toDayKey(value) {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : localDateKey(value);
+  }
+  const text = String(value ?? "").trim().slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
+}
+
 /* Streaks, computed purely from the check-in day list.
    - current: consecutive days ending today (or yesterday, so a missed
      today doesn't kill a streak until the day actually rolls over).
    - longest: the best run anywhere in the history. */
 function calculateStreaks(checkinKeys, today = new Date()) {
-  const set = new Set(checkinKeys.map(localDateKey));
-  const todayKey = localDateKey(today);
+  // Normalise first: callers may hand us ISO strings (the API shape) or
+  // real Date objects (the live-update path), and unknown values are
+  // dropped instead of crashing the render.
+  const set = new Set(
+    (Array.isArray(checkinKeys) ? checkinKeys : [])
+      .map(toDayKey)
+      .filter(Boolean)
+  );
+  const todayKey = toDayKey(today) || localDateKey(new Date());
 
   let current = 0;
   let cursor = keyToDate(todayKey);
@@ -177,6 +196,7 @@ function renderHeatmap(container, { today = new Date(), checkins = [], checkinKe
 window.Heatmap = {
   localDateKey,
   keyToDate,
+  toDayKey,
   calculateStreaks,
   normalizeCheckinDates,
   renderHeatmap,

@@ -214,7 +214,12 @@ h1, h2, h3, p { margin: 0; }
 .encouragement h2 { font-size: 12px; font-weight: 500; color: #647353; }
 .encouragement p { font-size: 10px; color: #899279; margin-top: 3px; }
 .encouragement-note { margin-left: auto; white-space: nowrap; color: #909977; font-family: Georgia, serif; font-size: 13px; font-style: italic; }
-.dashboard-footer { display: flex; align-items: center; justify-content: space-between; padding: 27px 0; margin-top: 17px; color: #9aa193; font-size: 9px; }
+.dashboard-footer { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 30px 20px 34px; margin-top: 26px; border-top: 1px solid var(--border); color: #9aa193; font-size: 10px; text-align: center; }
+.dashboard-footer p { margin: 0; }
+.footer-credit { display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 4px; font-size: 11px; letter-spacing: .2px; color: #8d968a; }
+.footer-heart { color: #b06a63; font-size: 11px; line-height: 1; }
+.footer-author { font-weight: 600; color: var(--accent); }
+.footer-tagline { font-family: Georgia, "Times New Roman", serif; font-size: 12px; font-style: italic; color: #909977; }
 .footer-brand { font-size: 17px; font-weight: 600; letter-spacing: -.8px; color: #a1ab9b; }
 
 /* Feedback and dialogs */
@@ -322,7 +327,9 @@ body:has(dialog[open]) { overflow: hidden; }
   .encouragement h2 { font-size: 11px; }
   .encouragement p { font-size: 9px; }
   .encouragement-icon { font-size: 24px; }
-  .dashboard-footer { padding: 22px 0; }
+  .dashboard-footer { padding: 24px 14px 26px; gap: 6px; }
+  .footer-tagline { font-size: 11px; }
+  .footer-credit { font-size: 10px; }
   .empty-state { padding: 35px 18px; }
   .empty-state h3 { font-size: 22px; }
   .empty-state p { font-size: 11px; }

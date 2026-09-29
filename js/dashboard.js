@@ -105,11 +105,24 @@ function hideDashboardError() {
 }
 
 /* --- Loading / empty-state ------------------------------------------------ */
+/* The loading state owns the skeleton and both add buttons. Whether the
+   grid or the empty state is visible is decided by the render helpers, so
+   switching loading off never un-hides an empty grid. */
 function setLoading(loading) {
-  $("#habits-loading").hidden = !loading;
-  $("#habits-grid").hidden = loading;
+  const skeleton = $("#habits-loading");
+  if (skeleton) skeleton.hidden = !loading;
+  if (loading) {
+    $("#habits-grid").hidden = true;
+    $("#empty-state").hidden = true;
+  }
   $("#add-habit-button").disabled = loading;
   $("#empty-add-button").disabled = loading;
+}
+
+/* Show the grid and hide the empty state once there is something to show. */
+function showHabitGrid() {
+  $("#empty-state").hidden = true;
+  $("#habits-grid").hidden = false;
 }
 
 function renderEmptyState() {
@@ -228,43 +241,70 @@ function renderCardError(card, message) {
   setTimeout(() => { error.hidden = true; }, 3500);
 }
 
+/* Write a {current, longest} pair into a card's two streak numbers. */
+function applyStreaks(card, streaks) {
+  const [currentStreak, bestStreak] = $$(".streak-number", card);
+  if (currentStreak) currentStreak.textContent = `${streaks.current} days`;
+  if (bestStreak) bestStreak.textContent = `${streaks.longest} days`;
+}
+
+/* Prefer the streak numbers the API already calculated; recompute locally
+   only when the response doesn't include them (defensive, older backends). */
+function streaksFromPayload(payload, checkinKeys) {
+  const current = Number(payload?.current_streak);
+  const longest = Number(payload?.longest_streak);
+  if (Number.isFinite(current) && Number.isFinite(longest)) {
+    return { current, longest };
+  }
+  return Heatmap.calculateStreaks(checkinKeys);
+}
+
 /* Fetch a habit's check-in history, then fill in streaks + heatmap.
-   Returns a promise so the render queue can chain to the next habit. */
-function hydrateHabit(card, habit, retry = false) {
+   Always resolves — a failed fetch still leaves an (empty) heatmap grid
+   on the card instead of the old "History unavailable" dead end. */
+async function hydrateHabit(card, habit, retry = false) {
+  if (!card) return;
   const grid = $(".heatmap-grid", card);
-  grid.setAttribute("aria-label", `Loading check-in history for ${habit.name}…`);
+  if (grid) grid.setAttribute("aria-label", `Loading check-in history for ${habit.name}…`);
 
-  return requestJSON(`/api/habits/${pathId(habit.id)}/checkins`)
-    .then((payload) => {
-      const checkinKeys = Heatmap.normalizeCheckinDates(payload);
-      habit.checkinKeys = checkinKeys; // Keep for live updates after a check-in.
+  try {
+    const payload = await requestJSON(`/api/habits/${pathId(habit.id)}/checkins`);
+    const checkinKeys = Heatmap.normalizeCheckinDates(payload);
+    habit.checkinKeys = checkinKeys; // Keep for live updates after a check-in.
+    habit.streaks = streaksFromPayload(payload, checkinKeys);
 
-      // Streaks from the full history (even if GET /api/habits
-      // doesn't include them).
-      habit.streaks = Heatmap.calculateStreaks(checkinKeys);
-      const [currentStreak, bestStreak] = $$(".streak-number", card);
-      currentStreak.textContent = `${habit.streaks.current} days`;
-      bestStreak.textContent = `${habit.streaks.longest} days`;
+    // A check-in already recorded today keeps the button in its "done" state.
+    if (checkinKeys.includes(Heatmap.localDateKey(new Date()))) {
+      state.checkedToday.add(idStr(habit.id));
+    }
 
-      grid.setAttribute("aria-label", "Check-in history for the last 13 weeks");
-      Heatmap.renderHeatmap(card, { checkins: checkinKeys });
-      updateCheckinButton(card, habit);
-      updateStats();
-      habit.hydrated = true;
-    })
-    .catch((err) => {
-      if (err.message === "session-expired") return;
-      // Small retry: the server may have blinked the first time.
-      if (!retry) {
-        setTimeout(() => hydrateHabit(card, habit, true), 500);
-        return;
-      }
-      renderCardError(card, "Couldn’t load history right now.");
-      const fallback = document.createElement("div");
-      fallback.className = "history-error";
-      fallback.textContent = "History unavailable at the moment.";
-      $(".heatmap-scroll", card).replaceChildren(fallback);
-    });
+    applyStreaks(card, habit.streaks);
+    if (grid) grid.setAttribute("aria-label", "Check-in history for the last 13 weeks");
+    Heatmap.renderHeatmap(card, { checkins: checkinKeys });
+    updateCheckinButton(card, habit);
+    updateStats();
+    habit.hydrated = true;
+  } catch (err) {
+    if (err.message === "session-expired") return;
+    console.error(`Could not load check-in history for habit ${habit.id}:`, err);
+
+    // Small retry: the server may have blinked the first time.
+    if (!retry) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return hydrateHabit(card, habit, true);
+    }
+
+    // Still draw the (empty) grid so the card keeps its full layout, and
+    // mention the hiccup in the small, temporary card notice instead.
+    if (!Array.isArray(habit.checkinKeys)) habit.checkinKeys = [];
+    habit.streaks = habit.streaks || { current: 0, longest: 0 };
+    applyStreaks(card, habit.streaks);
+    Heatmap.renderHeatmap(card, { checkins: habit.checkinKeys });
+    renderCardError(card, "Couldn’t refresh history just now.");
+    updateCheckinButton(card, habit);
+    updateStats();
+    habit.hydrated = true;
+  }
 }
 
 function renderHabitList() {
@@ -289,117 +329,130 @@ function renderHabitList() {
 }
 
 /* --- Check-in for today ---------------------------------------------------- */
-function checkin(habit) {
+async function checkin(habit) {
   const card = $$(".habit-card", $("#habits-grid"))
     .find((el) => el.dataset.habitId === idStr(habit.id));
   if (!card) return;
 
   const button = $(".checkin-button", card);
+  const label = $("[data-checkin-label]", button);
   state.checkedToday.add(idStr(habit.id)); // Optimistic: update the UI now.
   button.disabled = true;
   button.classList.add("is-done");
-  $("[data-checkin-label]", button).textContent = "Saving…";
+  if (label) label.textContent = "Saving…";
 
-  requestJSON(`/api/habits/${pathId(habit.id)}/checkin`, { method: "POST" })
-    .then(() => {
-      $("[data-checkin-label]", button).textContent = "Done today ✓";
-      // Live-update this habit: color today's cell and refresh the streaks.
-      if (habit.checkinKeys) {
-        habit.checkinKeys.push(Heatmap.localDateKey(new Date()));
-        habit.streaks = Heatmap.calculateStreaks(habit.checkinKeys);
-        const [currentStreak, bestStreak] = $$(".streak-number", card);
-        currentStreak.textContent = `${habit.streaks.current} days`;
-        bestStreak.textContent = `${habit.streaks.longest} days`;
-        Heatmap.renderHeatmap(card, { checkins: habit.checkinKeys });
-      }
-      updateStats();
-      showToast("Nice — logged for today.");
-    })
-    .catch((err) => {
-      if (err.message === "session-expired") return;
-      state.checkedToday.delete(idStr(habit.id)); // Roll the button back.
-      updateCheckinButton(card, habit);
-      updateStats();
-      renderCardError(card, err.message || "Couldn’t save your check-in just now.");
-    });
+  try {
+    await requestJSON(`/api/habits/${pathId(habit.id)}/checkin`, { method: "POST" });
+
+    // Live-update this habit: color today's cell and refresh the streaks.
+    if (!Array.isArray(habit.checkinKeys)) habit.checkinKeys = [];
+    const todayKey = Heatmap.localDateKey(new Date());
+    if (!habit.checkinKeys.includes(todayKey)) habit.checkinKeys.push(todayKey);
+    habit.streaks = Heatmap.calculateStreaks(habit.checkinKeys);
+    applyStreaks(card, habit.streaks);
+    Heatmap.renderHeatmap(card, { checkins: habit.checkinKeys });
+    updateStats();
+    showToast("Nice — logged for today.");
+  } catch (err) {
+    state.checkedToday.delete(idStr(habit.id)); // Roll the button back.
+    updateStats();
+    if (err.message === "session-expired") return;
+    console.error(`Could not check in habit ${habit.id}:`, err);
+    renderCardError(card, err.message || "Couldn’t save your check-in just now.");
+  } finally {
+    // Whatever happened, the button reflects the real state — never "Saving…".
+    updateCheckinButton(card, habit);
+  }
 }
 
 /* --- Add habit ------------------------------------------------------------- */
 function openAddDialog() {
   const dialog = $("#habit-dialog");
+  $("#habit-form").reset();          // Never reopen with the last habit's text.
   $("#habit-form-error").hidden = true;
-  $("#habit-name").value = "";
-  $("#habit-category").value = "";
   dialog.showModal();
   setTimeout(() => $("#habit-name").focus(), 30); // After the native dialog opens.
 }
 
-function submitHabit(form) {
+/* Add one habit, then reload the list so the new card appears immediately.
+   The submit button is restored in `finally`, so an API failure (or an
+   expired session) can never leave it stuck on "Adding…". */
+async function submitHabit(form) {
   const button = form.querySelector('button[type="submit"]');
-  button.disabled = true;
-  $("[data-button-label]", button).textContent = "Adding…";
-  $(".spinner", button).hidden = false;
+  const label = button ? $("[data-button-label]", button) : null;
+  const spinner = button ? $(".spinner", button) : null;
+  const errorBox = $("#habit-form-error");
 
   const body = {
     name: strip($("#habit-name").value),
     category: strip($("#habit-category").value),
   };
 
-  requestJSON("/api/habits", { method: "POST", body })
-    .then((payload) => {
-      const created = unwrapHabits(payload)[0] || payload;
-      state.habits.push({
-        id: created.id,
-        name: created.name ?? body.name,
-        category: created.category ?? body.category,
-        colorIndex: state.habits.length % PALETTE.length,
-        hydrated: false,
-      });
-      $("#habit-dialog").close();
-      renderHabitList();
-      updateStats();
-      showToast("Habit added — great start!");
-    })
-    .catch((err) => {
-      if (err.message === "session-expired") return;
-      $("#habit-form-error").textContent = err.message || "We couldn’t add that habit right now.";
-      $("#habit-form-error").hidden = false;
-      button.disabled = false;
-      $("[data-button-label]", button).textContent = "Add habit";
-      $(".spinner", button).hidden = true;
-    });
+  errorBox.hidden = true;
+  if (button) button.disabled = true;
+  if (label) label.textContent = "Adding…";
+  if (spinner) spinner.hidden = false;
+
+  try {
+    await requestJSON("/api/habits", { method: "POST", body });
+
+    form.reset();                     // Reset the Add Habit form.
+    $("#habit-dialog").close();       // Close the modal on success.
+    await loadHabits();               // Refresh the list — new habit shows up now.
+    showHabitGrid();
+    showToast("Habit added — great start!");
+  } catch (err) {
+    if (err.message === "session-expired") return;
+    console.error("Could not create habit:", err);
+    errorBox.textContent = err.message || "We couldn’t add that habit right now.";
+    errorBox.hidden = false;
+  } finally {
+    // Success or failure, the form is usable again straight away.
+    if (button) button.disabled = false;
+    if (label) label.textContent = "Add habit";
+    if (spinner) spinner.hidden = true;
+  }
 }
 
 /* --- Delete habit ---------------------------------------------------------- */
-function confirmDelete() {
+async function confirmDelete() {
   const id = state.deleteTarget;
   if (id == null) return;
-  $("#confirm-delete").disabled = true;
-  $("[data-button-label]", $("#confirm-delete")).textContent = "Deleting…";
+
+  const button = $("#confirm-delete");
+  const label = $("[data-button-label]", button);
+  const spinner = $(".spinner", button);
+
+  button.disabled = true;
+  if (label) label.textContent = "Deleting…";
+  if (spinner) spinner.hidden = false;
   $("#delete-error").hidden = true;
 
-  requestJSON(`/api/habits/${pathId(id)}`, { method: "DELETE" })
-    .then(() => {
-      state.habits = state.habits.filter((habit) => idStr(habit.id) !== idStr(id));
-      state.checkedToday.delete(idStr(id));
-      $("#delete-dialog").close();
-      state.deleteTarget = null;
-      if (state.habits.length === 0) {
-        renderEmptyState();
-        $("#empty-add-button").disabled = false;
-      } else {
-        renderHabitList();
-        updateStats();
-      }
-      showToast("Habit removed.");
-    })
-    .catch((err) => {
-      if (err.message === "session-expired") return;
-      $("#delete-error").textContent = err.message || "We couldn’t remove it right now.";
-      $("#delete-error").hidden = false;
-      $("#confirm-delete").disabled = false;
-      $("[data-button-label]", $("#confirm-delete")).textContent = "Delete habit";
-    });
+  try {
+    await requestJSON(`/api/habits/${pathId(id)}`, { method: "DELETE" });
+    state.habits = state.habits.filter((habit) => idStr(habit.id) !== idStr(id));
+    state.checkedToday.delete(idStr(id));
+    $("#delete-dialog").close();
+    state.deleteTarget = null;
+    if (state.habits.length === 0) {
+      renderEmptyState();
+      $("#empty-add-button").disabled = false;
+    } else {
+      renderHabitList();
+      updateStats();
+    }
+    showToast("Habit removed.");
+  } catch (err) {
+    if (err.message === "session-expired") return;
+    console.error(`Could not delete habit ${id}:`, err);
+    $("#delete-error").textContent = err.message || "We couldn’t remove it right now.";
+    $("#delete-error").hidden = false;
+  } finally {
+    // The dialog's button must always come back to its normal state.
+    button.disabled = false;
+    if (label) label.textContent = "Delete habit";
+    if (spinner) spinner.hidden = true;
+  }
 }
 
 /* --- Loading habits (initial + retry) -------------------------------------- */
@@ -413,19 +466,21 @@ async function loadHabits() {
       colorIndex: index % PALETTE.length,
       hydrated: false,
     }));
-    setLoading(false);
-    $("#empty-add-button").disabled = false;
+
     if (state.habits.length === 0) {
       renderEmptyState();
       return;
     }
-    $("#empty-state").hidden = true; // Only show the empty state when there's nothing to track.
+    showHabitGrid(); // Only show the empty state when there's nothing to track.
     renderHabitList();
     updateStats();
   } catch (err) {
     if (err.message === "session-expired") return;
-    setLoading(false);
+    console.error("Could not load habits:", err);
     showDashboardError("We couldn’t load your habits. Check your connection and try again.");
+  } finally {
+    // The skeleton and the add buttons always come back, whatever happened.
+    setLoading(false);
   }
 }
 
