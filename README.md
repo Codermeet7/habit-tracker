@@ -6,7 +6,7 @@ Users can create an account, manage daily habits, track streaks, and visualize t
 
 ## Live Demo
 
-🌐 Website: https://YOUR_RENDER_URL.onrender.com
+🌐 Website: habit-tracker-lad0.onrender.com
 
 ## GitHub Repository
 
