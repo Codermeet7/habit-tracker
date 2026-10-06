@@ -4,9 +4,9 @@ A modern Full Stack Habit Tracker web application built using **Python, Flask, S
 
 Users can create an account, manage daily habits, track streaks, and visualize their progress using a heatmap calendar.
 
-🌐 **Website:** [Live Demo](habit-tracker-lad0.onrender.com)
+🌐 **Website:** (habit-tracker-lad0.onrender.com)
 
-💼 **LinkedIn:** [Meet Gadge](https://www.linkedin.com/in/meet-gadge-b51043268/?isSelfProfile=true)
+💼 **LinkedIn:** (https://www.linkedin.com/in/meet-gadge-b51043268/?isSelfProfile=true)
 
 
 ## GitHub Repository
